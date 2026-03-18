@@ -1,44 +1,32 @@
 import java.util.*;
 
-// ================================
-// Book My Stay App - UC4
-// FIFO Booking using Queue
-// ================================
-
 public class BookMyStayApp {
 
     public static void main(String[] args) {
 
-        System.out.println("===== Book My Stay - UC4 FIFO Booking =====");
+        System.out.println("===== Book My Stay - UC6 Room Allocation =====");
 
-        // Create Inventory
         RoomInventory inventory = new RoomInventory();
+        BookingManager manager = new BookingManager(inventory);
 
-        // Create Booking Manager
-        BookingManager bookingManager = new BookingManager(inventory);
+        manager.addBookingRequest("Rohan", "Single");
+        manager.addBookingRequest("Aryan", "Double");
+        manager.addBookingRequest("Kiran", "Suite");
+        manager.addBookingRequest("Vijay", "Single");
 
-        // Add Booking Requests
-        bookingManager.addBookingRequest("Rohan", "Single");
-        bookingManager.addBookingRequest("Aryan", "Double");
-        bookingManager.addBookingRequest("Kiran", "Suite");
-        bookingManager.addBookingRequest("Vijay", "Single");
+        manager.processBookings();
 
-        // Process Bookings in FIFO order
-        bookingManager.processBookings();
-
-        // Show Remaining Rooms
         inventory.displayInventory();
     }
 }
 
-// =====================================
-// UC3 - Centralized Room Inventory
-// =====================================
+// ================= INVENTORY =================
 class RoomInventory {
 
     private HashMap<String, Integer> availability;
 
     public RoomInventory() {
+
         availability = new HashMap<>();
 
         availability.put("Single", 2);
@@ -47,66 +35,100 @@ class RoomInventory {
     }
 
     public boolean bookRoom(String type) {
+
         if (availability.getOrDefault(type, 0) > 0) {
+
             availability.put(type, availability.get(type) - 1);
             return true;
         }
+
         return false;
     }
 
     public void displayInventory() {
-        System.out.println("\nUpdated Room Availability:");
+
+        System.out.println("\nRemaining Rooms:");
+
         for (String type : availability.keySet()) {
-            System.out.println(type + " Rooms Left: " + availability.get(type));
+
+            System.out.println(type + " : " + availability.get(type));
         }
     }
 }
 
-// =====================================
-// UC4 - Booking Manager (FIFO Queue)
-// =====================================
+// ================= BOOKING MANAGER =================
 class BookingManager {
 
-    private Queue<BookingRequest> requestQueue;
+    private Queue<BookingRequest> queue;
     private RoomInventory inventory;
 
+    private Set<String> allocatedRoomIds;
+    private HashMap<String, Set<String>> roomTypeMap;
+
+    private int roomCounter = 100;
+
     public BookingManager(RoomInventory inventory) {
+
         this.inventory = inventory;
-        requestQueue = new LinkedList<>();
+
+        queue = new LinkedList<>();
+        allocatedRoomIds = new HashSet<>();
+        roomTypeMap = new HashMap<>();
     }
 
-    public void addBookingRequest(String customerName, String roomType) {
-        requestQueue.add(new BookingRequest(customerName, roomType));
-        System.out.println("Booking request added for " + customerName);
+    public void addBookingRequest(String name, String roomType) {
+
+        queue.add(new BookingRequest(name, roomType));
+
+        System.out.println("Booking request added : " + name);
     }
 
     public void processBookings() {
 
-        System.out.println("\nProcessing Bookings (FIFO Order):");
+        System.out.println("\nProcessing bookings...");
 
-        while (!requestQueue.isEmpty()) {
+        while (!queue.isEmpty()) {
 
-            BookingRequest request = requestQueue.poll();
+            BookingRequest request = queue.poll();
 
             if (inventory.bookRoom(request.roomType)) {
-                System.out.println("Booking confirmed for " + request.customerName);
-            } else {
-                System.out.println("Booking failed for " + request.customerName + " (No rooms available)");
+
+                String roomId = generateRoomId(request.roomType);
+
+                allocatedRoomIds.add(roomId);
+
+                roomTypeMap.putIfAbsent(request.roomType, new HashSet<>());
+                roomTypeMap.get(request.roomType).add(roomId);
+
+                System.out.println("Reservation confirmed for "
+                        + request.customerName +
+                        " | Room ID: " + roomId);
+            }
+
+            else {
+
+                System.out.println("No rooms available for " + request.customerName);
             }
         }
     }
+
+    private String generateRoomId(String type) {
+
+        roomCounter++;
+
+        return type.substring(0,1).toUpperCase() + roomCounter;
+    }
 }
 
-// =====================================
-// Booking Request Model
-// =====================================
+// ================= BOOKING REQUEST =================
 class BookingRequest {
 
     String customerName;
     String roomType;
 
-    public BookingRequest(String customerName, String roomType) {
-        this.customerName = customerName;
-        this.roomType = roomType;
+    public BookingRequest(String name, String type) {
+
+        this.customerName = name;
+        this.roomType = type;
     }
 }
